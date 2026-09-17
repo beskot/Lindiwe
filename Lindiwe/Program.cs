@@ -1,47 +1,48 @@
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Lindiwe;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, LindiweJsonSerializerContext.Default);
 });
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddSingleton<IRepository, MemoryRepository>();
+builder.Services.AddSingleton<CommandService>();
+builder.Services.AddHostedService<CommandWorker>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.MapPost("/commands", async (
+    CreateCommandRequest request,
+    IRepository repository,
+    CancellationToken cancellationToken) =>
 {
-    app.MapOpenApi();
-}
+    if (string.IsNullOrWhiteSpace(request.Type))
+    {
+        return Results.BadRequest(new
+        {
+            error = "Type is required."
+        });
+    }
 
-Todo[] sampleTodos =
-[
-    new(1, "Walk the dog"),
-    new(2, "Do the dishes", DateOnly.FromDateTime(DateTime.Now)),
-    new(3, "Do the laundry", DateOnly.FromDateTime(DateTime.Now.AddDays(1))),
-    new(4, "Clean the bathroom"),
-    new(5, "Clean the car", DateOnly.FromDateTime(DateTime.Now.AddDays(2)))
-];
+    if (string.IsNullOrWhiteSpace(request.PayloadJson))
+    {
+        return Results.BadRequest(new
+        {
+            error = "PayloadJson is required."
+        });
+    }
 
-var todosApi = app.MapGroup("/todos");
-todosApi.MapGet("/", () => sampleTodos)
-    .WithName("GetTodos");
+    var command = new Command(
+        Id: Guid.NewGuid().ToString("N"),
+        Type: request.Type,
+        PayloadJson: request.PayloadJson,
+        CreatedAt: DateTimeOffset.UtcNow);
 
-todosApi.MapGet("/{id}", Results<Ok<Todo>, NotFound> (int id) =>
-        sampleTodos.FirstOrDefault(a => a.Id == id) is { } todo
-            ? TypedResults.Ok(todo)
-            : TypedResults.NotFound())
-    .WithName("GetTodoById");
+    await repository.AddAsync(command, cancellationToken);
+
+    return Results.Accepted($"/commands/{command.Id}", command);
+});
 
 app.Run();
-
-public record Todo(int Id, string? Title, DateOnly? DueBy = null, bool IsComplete = false);
-
-[JsonSerializable(typeof(Todo[]))]
-internal partial class AppJsonSerializerContext : JsonSerializerContext
-{
-}
