@@ -8,6 +8,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddSingleton<IRepository, MemoryRepository>();
+builder.Services.AddSingleton<ICommandHandler, EchoCommandHandler>();
 builder.Services.AddSingleton<CommandService>();
 builder.Services.AddHostedService<CommandWorker>();
 

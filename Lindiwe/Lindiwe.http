@@ -1,11 +1,11 @@
 @Lindiwe_HostAddress = http://localhost:5134
 
-GET {{Lindiwe_HostAddress}}/todos/
+### Add new command
+POST {{Lindiwe_HostAddress}}/commands
 Accept: application/json
+Content-Type: application/json
 
-###
-
-GET {{Lindiwe_HostAddress}}/todos/1
-Accept: application/json
-
-###
+{
+  "type": "echo",
+  "payloadJson": "{\"message\":\"hello\"}"
+}
