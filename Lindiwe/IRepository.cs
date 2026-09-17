@@ -9,20 +9,50 @@ public interface IRepository
     Task DeleteAsync(string id, CancellationToken cancellationToken);
 }
 
-public class MemoryRepository : IRepository
+public sealed class MemoryRepository : IRepository
 {
-    public Task AddAsync(Command command, CancellationToken cancellationToken)
+    private readonly Dictionary<string, Command> _commands = [];
+    private readonly SemaphoreSlim _lock = new(1, 1);
+
+    public async Task AddAsync(Command command, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await _lock.WaitAsync(cancellationToken);
+
+        try
+        {
+            _commands.TryAdd(command.Id, command);
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
-    public Task<IReadOnlyList<Command>> GetPendingAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Command>> GetPendingAsync(CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await _lock.WaitAsync(cancellationToken);
+
+        try
+        {
+            return _commands.Values.ToArray();
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
-    public Task DeleteAsync(string id, CancellationToken cancellationToken)
+    public async Task DeleteAsync(string id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await _lock.WaitAsync(cancellationToken);
+
+        try
+        {
+            _commands.Remove(id);
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 }
