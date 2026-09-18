@@ -41,6 +41,6 @@ public sealed class CommandService
             return false;
         }
 
-        return await handler.ExecuteAsync(command.PayloadJson, cancellationToken);
+        return await handler.ExecuteAsync(command, cancellationToken);
     }
 }
