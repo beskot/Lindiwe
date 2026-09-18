@@ -22,14 +22,12 @@ app.MapMethods(
         [FromRoute] string commandType,
         HttpRequest httpRequest,
         IRepository repository,
+        CommandService commandService,
         CancellationToken cancellationToken) =>
     {
-        if (string.IsNullOrWhiteSpace(commandType))
+        if (!commandService.Supports(commandType))
         {
-            return Results.BadRequest(new
-            {
-                error = "Command type is required."
-            });
+            return Results.BadRequest(new ErrorResponse($"Unsupported command type '{commandType}'."));
         }
 
         var payloadJson = httpRequest.Method switch
