@@ -1,4 +1,5 @@
 using Lindiwe;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -14,36 +15,39 @@ builder.Services.AddHostedService<CommandWorker>();
 
 var app = builder.Build();
 
-app.MapPost("/commands", async (
-    CreateCommandRequest request,
-    IRepository repository,
-    CancellationToken cancellationToken) =>
-{
-    if (string.IsNullOrWhiteSpace(request.Type))
+app.MapMethods(
+    "/commands/{commandType}",
+    [HttpMethods.Get, HttpMethods.Post],
+    async (
+        [FromRoute] string commandType,
+        HttpRequest httpRequest,
+        IRepository repository,
+        CancellationToken cancellationToken) =>
     {
-        return Results.BadRequest(new
+        if (string.IsNullOrWhiteSpace(commandType))
         {
-            error = "Type is required."
-        });
-    }
+            return Results.BadRequest(new
+            {
+                error = "Command type is required."
+            });
+        }
 
-    if (string.IsNullOrWhiteSpace(request.PayloadJson))
-    {
-        return Results.BadRequest(new
+        var payloadJson = httpRequest.Method switch
         {
-            error = "PayloadJson is required."
-        });
-    }
+            "POST" => await httpRequest.ToPayloadJsonString(cancellationToken),
+            _ => string.Empty
+        };
 
-    var command = new Command(
-        Id: Guid.NewGuid().ToString("N"),
-        Type: request.Type,
-        PayloadJson: request.PayloadJson,
-        CreatedAt: DateTimeOffset.UtcNow);
+        var command = new Command(
+            Id: Guid.NewGuid().ToString("N"),
+            Type: commandType.Trim().ToLowerInvariant(),
+            QueryParameters: httpRequest.ToQueryParameters(),
+            PayloadJson: payloadJson,
+            CreatedAt: DateTimeOffset.UtcNow);
 
-    await repository.AddAsync(command, cancellationToken);
+        await repository.AddAsync(command, cancellationToken);
 
-    return Results.Accepted($"/commands/{command.Id}", command);
-});
+        return Results.Accepted($"/commands/{command.Id}", command);
+    });
 
 app.Run();

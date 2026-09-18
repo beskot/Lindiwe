@@ -1,11 +1,10 @@
 @Lindiwe_HostAddress = http://localhost:5134
 
 ### Add new command
-POST {{Lindiwe_HostAddress}}/commands
+POST {{Lindiwe_HostAddress}}/commands/echo
 Accept: application/json
 Content-Type: application/json
 
 {
-  "type": "echo",
-  "payloadJson": "{\"message\":\"hello\"}"
+  "message": "hello"
 }
