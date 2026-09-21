@@ -1,0 +1,33 @@
+﻿name: Build Native AOT binary
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: [self-hosted, win11-x64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore
+        run: dotnet restore Lindiwe.slnx
+
+      - name: Publish Native AOT
+        run: |
+          dotnet publish Lindiwe/Lindiwe.csproj \
+          -c Release -r win-x64 \
+          -p:PublishAot=true -p:StripSymbols=true -p:InvariantGlobalization=true \
+          -o ./publish/x64
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lindiwe-linux-arm64-${{ github.ref_name }}
+          path: ./publish/arm64/Lindiwe
+          retention-days: 14
