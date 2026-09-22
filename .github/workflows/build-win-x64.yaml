@@ -19,7 +19,7 @@ jobs:
         run: dotnet restore Lindiwe.slnx
 
       - name: Publish Native AOT
-        shell: pwsh
+        shell: powershell
         run: >
           dotnet publish Lindiwe/Lindiwe.csproj
           -c Release -r win-x64
