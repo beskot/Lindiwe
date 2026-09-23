@@ -10,18 +10,48 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DOTNET_NOLOGO=1 \
     RUNNER_ALLOW_RUNASROOT=1
 
-RUN apt-get update \
+RUN rm -f /etc/apt/sources.list.d/ubuntu.sources && \
+    { \
+      echo "Types: deb"; \
+      echo "URIs: http://archive.ubuntu.com/ubuntu/"; \
+      echo "Suites: noble noble-updates noble-backports"; \
+      echo "Components: main restricted universe multiverse"; \
+      echo "Architectures: amd64"; \
+      echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg"; \
+      echo ""; \
+      echo "Types: deb"; \
+      echo "URIs: http://security.ubuntu.com/ubuntu/"; \
+      echo "Suites: noble-security"; \
+      echo "Components: main restricted universe multiverse"; \
+      echo "Architectures: amd64"; \
+      echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg"; \
+      echo ""; \
+      echo "Types: deb"; \
+      echo "URIs: http://ports.ubuntu.com/ubuntu-ports/"; \
+      echo "Suites: noble noble-updates noble-backports noble-security"; \
+      echo "Components: main restricted universe multiverse"; \
+      echo "Architectures: arm64"; \
+      echo "Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg"; \
+    } > /etc/apt/sources.list.d/ubuntu.sources
+
+RUN dpkg --add-architecture arm64 \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         git \
+        clang \
+        llvm \
+        binutils-aarch64-linux-gnu \
         gcc-aarch64-linux-gnu \
+        zlib1g-dev:arm64 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /actions-runner
 
-RUN curl -fsSL \
-      "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${TARGETARCH}-${RUNNER_VERSION}.tar.gz" \
+RUN RUNNER_ARCH=$(echo "$TARGETARCH" | sed 's/amd64/x64/') \
+    && curl -fsSL \
+      "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" \
       -o runner.tar.gz \
     && tar xzf runner.tar.gz \
     && rm runner.tar.gz \
@@ -31,7 +61,5 @@ COPY entrypoint.sh /actions-runner/entrypoint.sh
 
 RUN sed -i 's/\r$//' /actions-runner/entrypoint.sh \
     && chmod +x /actions-runner/entrypoint.sh
-
-RUN chmod +x /actions-runner/entrypoint.sh
 
 ENTRYPOINT ["/actions-runner/entrypoint.sh"]
