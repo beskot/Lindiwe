@@ -1,6 +1,13 @@
 using Lindiwe;
 using Microsoft.AspNetCore.Mvc;
 
+var startupService = new StartupService();
+startupService.Handle(args);
+if (!startupService.CanRun)
+{
+    return;
+}
+
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
