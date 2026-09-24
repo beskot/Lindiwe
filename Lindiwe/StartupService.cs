@@ -3,7 +3,7 @@
 public sealed class StartupService
 {
     private const string HelpText = """
-                                    Lindiwe — использование:
+                                    Lindiwe — usage:
 
                                       --help | -h   Show the help message
                                       --run | -r    Run the service
@@ -47,7 +47,7 @@ public sealed class StartupService
             var result = command switch
             {
                 "--help" or "-h" => HelpText,
-                "--run" => Run(commandArgs),
+                "--run" or "-r" => Run(commandArgs),
                 _ => HelpText
             };
 
