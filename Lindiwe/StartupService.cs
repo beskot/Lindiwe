@@ -1,12 +1,15 @@
-﻿namespace Lindiwe;
+﻿using System.Reflection;
+
+namespace Lindiwe;
 
 public sealed class StartupService
 {
     private const string HelpText = """
                                     Lindiwe — usage:
 
-                                      --help | -h   Show the help message
-                                      --run | -r    Run the service
+                                      --help | -h       Show the help message
+                                      --run | -r        Run the service
+                                      --version | -v    Show version
                                     """;
 
     public bool CanRun { get; private set; }
@@ -48,6 +51,7 @@ public sealed class StartupService
             {
                 "--help" or "-h" => HelpText,
                 "--run" or "-r" => Run(commandArgs),
+                "--version" or "-v" => GetVersion(),
                 _ => HelpText
             };
 
@@ -64,5 +68,23 @@ public sealed class StartupService
     {
         CanRun = true;
         return string.Join(" ", args);
+    }
+
+    private static string GetVersion()
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        var infoVersion = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(infoVersion))
+        {
+            return infoVersion;
+        }
+
+        var fileVersion = asm.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+        if (!string.IsNullOrWhiteSpace(fileVersion))
+        {
+            return fileVersion;
+        }
+
+        return asm.GetName().Version?.ToString() ?? "unknown";
     }
 }
