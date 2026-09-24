@@ -22,12 +22,13 @@ public sealed class StartupService
         for (var i = 0; i < args.Length; i++)
         {
             var current = args[i];
-            if (!current.StartsWith("--"))
+            var prefixLength = GetPrefixLength(current);
+            if (prefixLength == 0)
             {
                 continue;
             }
 
-            var name = current[2..];
+            var name = current[prefixLength..];
             if (string.IsNullOrEmpty(command))
             {
                 command = name;
@@ -41,6 +42,16 @@ public sealed class StartupService
         return (command, commandArgs);
     }
 
+    private static int GetPrefixLength(string arg)
+    {
+        if (arg.StartsWith("--"))
+        {
+            return 2;
+        }
+
+        return arg.StartsWith('-') ? 1 : 0;
+    }
+
     public void Handle(IEnumerable<string> args)
     {
         try
@@ -49,9 +60,9 @@ public sealed class StartupService
 
             var result = command switch
             {
-                "--help" or "-h" => HelpText,
-                "--run" or "-r" => Run(commandArgs),
-                "--version" or "-v" => GetVersion(),
+                "help" or "h" => HelpText,
+                "run" or "r" => Run(commandArgs),
+                "version" or "v" => GetVersion(),
                 _ => HelpText
             };
 
