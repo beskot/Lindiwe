@@ -8,7 +8,7 @@ if (!startupService.CanRun)
     return;
 }
 
-var builder = WebApplication.CreateSlimBuilder(args);
+var builder = WebApplication.CreateSlimBuilder();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -55,4 +55,4 @@ app.MapMethods(
         return Results.Accepted($"/commands/{command.Id}", command);
     });
 
-app.Run();
+app.Run(startupService.Url);

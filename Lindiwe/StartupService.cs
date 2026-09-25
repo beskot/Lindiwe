@@ -2,66 +2,70 @@
 
 namespace Lindiwe;
 
+public record CommandOption(string Key, string Value);
+
 public sealed class StartupService
 {
     private const string HelpText = """
-                                    Lindiwe — usage:
+                                    Usage:
+                                      lindiwe --run [-p <port>] [-i <ip>]
+                                      lindiwe --help
+                                      lindiwe --version
 
-                                      --help | -h       Show the help message
-                                      --run | -r        Run the service
-                                      --version | -v    Show version
+                                    Options:
+                                      -h, --help        Show the help message
+                                      -r, --run         Run the service
+                                      -p <port>         Port to listen on
+                                      -i <ip>           IP address to bind
+                                      -v, --version     Show version
                                     """;
 
     public bool CanRun { get; private set; }
+    public string Url { get; private set; }
 
-    private static (string Command, Dictionary<string, string> Args) Parse(string[] args)
+    private static string CreateCommand(string arg)
     {
-        var command = string.Empty;
-        var commandArgs = new Dictionary<string, string>();
-
-        for (var i = 0; i < args.Length; i++)
+        var pos = 0;
+        while (pos < arg.Length && arg[pos] == '-')
         {
-            var current = args[i];
-            var prefixLength = GetPrefixLength(current);
-            if (prefixLength == 0)
-            {
-                continue;
-            }
-
-            var name = current[prefixLength..];
-            if (string.IsNullOrEmpty(command))
-            {
-                command = name;
-                continue;
-            }
-
-            var hasValue = i + 1 < args.Length && !args[i + 1].StartsWith("--");
-            commandArgs[name] = hasValue ? args[++i] : "true";
+            pos++;
         }
 
-        return (command, commandArgs);
+        return arg[pos..];
     }
 
-    private static int GetPrefixLength(string arg)
+    private static CommandOption CreateCommandOption(string arg)
     {
-        if (arg.StartsWith("--"))
+        var p1 = 0;
+        var p2 = arg.Length;
+
+        for (var i = 0; i < arg.Length; i++)
         {
-            return 2;
+            if (arg[i] == '-')
+            {
+                p1 = i + 1;
+            }
+
+            if (arg[i] == '=')
+            {
+                p2 = i + 1;
+                break;
+            }
         }
 
-        return arg.StartsWith('-') ? 1 : 0;
+        return new CommandOption(arg[p1..(p2-1)], arg[p2..]);
     }
-
-    public void Handle(IEnumerable<string> args)
+    
+    public void Handle(string[] args)
     {
         try
         {
-            var (command, commandArgs) = Parse([.. args]);
+            var command = CreateCommand(args[0]);
 
             var result = command switch
             {
                 "help" or "h" => HelpText,
-                "run" or "r" => Run(commandArgs),
+                "run" or "r" => Run(args[1..]),
                 "version" or "v" => GetVersion(),
                 _ => HelpText
             };
@@ -75,10 +79,12 @@ public sealed class StartupService
         }
     }
 
-    private string Run(Dictionary<string, string> args)
+    private string Run(string[] options)
     {
+        var dict = options.Select(CreateCommandOption).ToDictionary(p => p.Key, p => p.Value);
+        Url = $"http://{dict["i"]}:{dict["p"]}";
         CanRun = true;
-        return string.Join(" ", args);
+        return Url;
     }
 
     private static string GetVersion()
