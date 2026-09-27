@@ -1,11 +1,6 @@
 ﻿name: Build Native AOT binary (arm64 for Raspberry Pi Zero 2 W)
 
 on:
-  push:
-    branches: [master]
-    tags: ['v*']
-  pull_request:
-    branches: [master]
   workflow_dispatch: {}
 
 permissions:
