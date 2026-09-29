@@ -15,15 +15,15 @@ jobs:
 
       - name: Determine build version
         id: ver
-        shell: bash
+        shell: pwsh
         run: |
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION="0.0.0-ci.${GITHUB_RUN_NUMBER}"
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          } else {
+            $version = "0.0.0-ci.$env:GITHUB_RUN_NUMBER"
+          }
+           
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Restore
         run: dotnet restore Lindiwe.slnx
