@@ -10,6 +10,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Determine build version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="0.0.0-ci.${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Restore
         run: dotnet restore Lindiwe.slnx
 
@@ -18,8 +30,16 @@ jobs:
         run: >
           dotnet publish Lindiwe/Lindiwe.csproj
           -c Release -r win-x64
-          -p:PublishAot=true -p:StripSymbols=true -p:InvariantGlobalization=true
+          -p:PublishAot=true
+          -p:StripSymbols=true
+          -p:InvariantGlobalization=true
+          -p:Version="${{ steps.ver.outputs.version }}" \
+          -p:IncludeSourceRevisionInInformationalVersion=false \
           -o ./publish/x64
+
+      - name: Rename release binary
+        if: startsWith(github.ref, 'refs/tags/')
+        run: mv ./publish/x64/Lindiwe ./publish/x64/Lindiwe-win-x64
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
@@ -27,3 +47,15 @@ jobs:
           name: lindiwe-win-x64-${{ github.ref_name }}
           path: ./publish/x64/Lindiwe.exe
           retention-days: 14
+          if-no-files-found: error
+      
+      # https://github.com/bestkot/Lindiwe/releases/download/<tag>/Lindiwe-win-x64
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: ./publish/x64/Lindiwe-win-x64
+          fail_on_unmatched_files: true
+          overwrite_files: true
