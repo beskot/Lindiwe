@@ -11,6 +11,7 @@ public sealed class StartupService
                                       lindiwe --run [-p <port>] [-i <ip>]
                                       lindiwe --help
                                       lindiwe --version
+                                      lindiwe --update
 
                                     Options:
                                       -h, --help        Show the help message
@@ -56,7 +57,7 @@ public sealed class StartupService
         return new CommandOption(arg[p1..(p2-1)], arg[p2..]);
     }
     
-    public void Handle(string[] args)
+    public async Task HandleAsync(string[] args)
     {
         try
         {
@@ -67,6 +68,7 @@ public sealed class StartupService
                 "help" or "h" => HelpText,
                 "run" or "r" => Run(args[1..]),
                 "version" or "v" => GetVersion(),
+                "update" => await Update(),
                 _ => HelpText
             };
 
@@ -103,5 +105,19 @@ public sealed class StartupService
         }
 
         return asm.GetName().Version?.ToString() ?? "unknown";
+    }
+
+    private static async Task<string> Update()
+    {
+        var updateService = new GitHubUpdateService(GetVersion(), new HttpClient());
+        if (!await updateService.CheckForUpdateAsync())
+        {
+            return "No update available";
+        }
+
+        await updateService.DownloadAsync();
+        updateService.RestartApplication();
+
+        return "Updated version check";
     }
 }

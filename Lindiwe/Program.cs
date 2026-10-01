@@ -2,7 +2,7 @@ using Lindiwe;
 using Microsoft.AspNetCore.Mvc;
 
 var startupService = new StartupService();
-startupService.Handle(args);
+await startupService.HandleAsync(args);
 if (!startupService.CanRun)
 {
     return;
